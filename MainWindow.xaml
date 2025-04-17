@@ -1,0 +1,81 @@
+﻿<Window x:Class="spotifyDragDrop.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:spotifyDragDrop"
+        mc:Ignorable="d"
+        
+        Title="MainWindow" Height="450" Width="800">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition />
+            <ColumnDefinition />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Drag and Drop Area -->
+        <Border x:Name="DragDropBorder"
+        BorderBrush="Gray" BorderThickness="2" CornerRadius="10"
+        Margin="20" Background="#FFEFEFEF"
+        VerticalAlignment="Stretch" HorizontalAlignment="Stretch"
+        Padding="10" AllowDrop="True"
+        Drop="MainWindow_Drop" DragEnter="DragDropBorder_DragEnter" DragLeave="DragDropBorder_DragLeave" Grid.Column="0" Grid.Row="0">
+            <TextBlock Text="Drag Spotify track links here"
+               HorizontalAlignment="Center" VerticalAlignment="Center"
+               FontSize="20" FontWeight="Bold"
+               Foreground="DarkGray"/>
+        </Border>
+
+        <!-- Message TextBox -->
+        <TextBox x:Name="MessageTextBox" Grid.Column="0" Grid.Row="1" Margin="20" 
+         IsReadOnly="True" TextWrapping="Wrap" VerticalAlignment="Top" 
+         HorizontalAlignment="Stretch" Height="50" Foreground="Black" 
+         Background="#FFF5F5F5" BorderBrush="Gray" BorderThickness="1" 
+         Text="{Binding Message, UpdateSourceTrigger=PropertyChanged}" />
+
+        <!-- ListBox -->
+        <ListBox x:Name="SongListBox" Grid.Column="1" Grid.Row="0" Margin="10">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock TextWrapping="Wrap" Padding="5" Cursor="Hand">
+                        <Hyperlink NavigateUri="{Binding YoutubeUrl}" RequestNavigate="Hyperlink_RequestNavigate"
+                                   Foreground="Black" TextDecorations="{x:Null}">
+                            <StackPanel Orientation="Horizontal">
+                                <!-- Thumbnail -->
+                                <Image Source="{Binding Thumbnail}" Width="50" Height="50" Margin="0,0,10,0"/>
+
+                                <!-- Song Details -->
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Title}" FontWeight="Bold"/>
+                                    <TextBlock Text="{Binding Artist}" FontStyle="Italic"/>
+                                </StackPanel>
+                                <Button Width="30" Height="30" Margin="10,0,0,0"
+        Command="{Binding DataContext.DeleteSongCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+        CommandParameter="{Binding}" Background="Transparent" BorderBrush="Transparent" Cursor="Hand">
+    <TextBlock Text="×" FontSize="16" FontWeight="Bold" Foreground="Red" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+</Button>
+                            </StackPanel>
+                        </Hyperlink>
+                    </TextBlock>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <!-- Folder Selector -->
+        <StackPanel Orientation="Horizontal" Grid.Column="1" Grid.Row="1" Margin="10,0,10,0" VerticalAlignment="Center">
+            <TextBox x:Name="FolderTextBox" Width="200" Margin="0,0,10,0"
+             Text="{Binding SelectedDirectory, UpdateSourceTrigger=PropertyChanged}" 
+             IsReadOnly="True" VerticalAlignment="Center" />
+            <Button Content="Browse" Width="75" Click="BrowseFolder_Click" />
+        </StackPanel>
+
+        <!-- Download Button -->
+        <Button Content="Download" Grid.Column="1" Grid.Row="1" Margin="10" Padding="10"
+        HorizontalAlignment="Right" VerticalAlignment="Center"
+        Command="{Binding DownloadSongsCommand}" />
+    </Grid>
+</Window>
