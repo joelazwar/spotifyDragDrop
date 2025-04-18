@@ -5,7 +5,7 @@ using Google.Apis.YouTube.v3.Data;
 using SpotifyAPI.Web;
 using SearchResult = Google.Apis.YouTube.v3.Data.SearchResult;
 
-namespace spotifyDragDrop
+namespace spotifyDragDrop.Model
 {
 
 
@@ -60,7 +60,7 @@ namespace spotifyDragDrop
                     AlbumArt = track.Album.Images.FirstOrDefault()?.Url,
                 };
             }
-            catch (SpotifyAPI.Web.APIException ex)
+            catch (APIException ex)
             {
                 throw new Exception($"Failed to retrieve track data from Spotify. Please check the URL. {ex.Message}", ex);
             }
