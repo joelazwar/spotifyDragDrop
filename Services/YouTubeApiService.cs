@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,6 +9,7 @@ using Google.Apis.Services;
 using Google.Apis.YouTube.v3;
 using Google.Apis.YouTube.v3.Data;
 using Microsoft.Extensions.Configuration;
+using SpotifyAPI.Web.Http;
 
 namespace spotifyDragDrop.Services
 {
@@ -39,25 +41,29 @@ namespace spotifyDragDrop.Services
             searchRequest.Type = "video";
             searchRequest.MaxResults = maxResults;
 
-            return await searchRequest.ExecuteAsync();
+            var response = await searchRequest.ExecuteAsync();
+            if (response?.Items == null || !response.Items.Any())
+            {
+                Debug.WriteLine("No videos found for the query.");
+                return null;
+            }
+
+            return response;
         }
 
-        public async Task<Video?> SearchVideoByIdAsync(string id)
+        public async Task<Video?> SearchVideoByIdAsync(string id, string part = "snippet")
         {
-            var searchRequest = _youTubeClient.Videos.List("snippet");
+            var searchRequest = _youTubeClient.Videos.List(part);
             searchRequest.Id = id;
 
             var video = await searchRequest.ExecuteAsync();
+            if (video?.Items == null || !video.Items.Any())
+            {
+                Debug.WriteLine("No video found.");
+                return null;
+            }
+
             return video.Items.FirstOrDefault();
-        }
-
-        public async Task<Video?> GetVideoDetailsAsync(string videoId)
-        {
-            var videoDetailsRequest = _youTubeClient.Videos.List("contentDetails");
-            videoDetailsRequest.Id = videoId;
-
-            var videoDetailsResponse = await videoDetailsRequest.ExecuteAsync();
-            return videoDetailsResponse.Items.FirstOrDefault();
         }
 
         public async Task<SearchResult?> FindVideoWithMatchingDurationAsync(string query, TimeSpan trackDuration, int maxResults = 5)
@@ -68,7 +74,7 @@ namespace spotifyDragDrop.Services
             {
                 foreach (var video in searchResponse.Items)
                 {
-                    var videoDetails = await GetVideoDetailsAsync(video.Id.VideoId);
+                    var videoDetails = await SearchVideoByIdAsync(video.Id.VideoId, "contentDetails");
                     if (videoDetails != null)
                     {
                         var videoDuration = XmlConvert.ToTimeSpan(videoDetails.ContentDetails.Duration);

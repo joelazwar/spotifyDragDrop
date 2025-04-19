@@ -7,15 +7,20 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Navigation;
+using Google.Apis.YouTube.v3;
 using spotifyDragDrop.Model;
+using spotifyDragDrop.Services;
 
 namespace spotifyDragDrop
 {
     /// <summary>  
     /// Interaction logic for MainWindow.xaml  
     /// </summary>  
+    /// 
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
+        private readonly YouTubeApiService _youTubeService;
+        private readonly SpotifyApiService _spotifyService;
         public ObservableCollection<Song> Songs { get; }
         public ICommand DeleteSongCommand { get; }
         public ICommand DownloadSongsCommand { get; }
@@ -56,10 +61,12 @@ namespace spotifyDragDrop
             }
         }
 
-        public MainWindow()
+        public MainWindow(YouTubeApiService youTubeService, SpotifyApiService spotifyService)
         {
-            InitializeComponent();
+            _youTubeService = youTubeService;
+            _spotifyService = spotifyService;
 
+            InitializeComponent();
             DataContext = this;
 
             Songs = new ObservableCollection<Song>();
@@ -89,7 +96,7 @@ namespace spotifyDragDrop
 
             try
             {
-                var song = await Song.CreateFromSpotifyUrlAsync(url);
+                var song = await Song.CreateFromSpotifyUrlAsync(url, _youTubeService, _spotifyService);
                 Songs.Add(song);
                 Message = "Song added successfully!";
             }

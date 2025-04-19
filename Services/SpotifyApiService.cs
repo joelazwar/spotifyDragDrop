@@ -16,12 +16,15 @@ namespace spotifyDragDrop.Services
         {
             var clientId = configuration["ClientId"];
             var clientSecret = configuration["ClientSecret"];
+
             if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(clientSecret))
             {
                 throw new Exception("Spotify Client ID or Secret is missing in appsettings.json");
             }
+
             var config = SpotifyClientConfig.CreateDefault()
                 .WithAuthenticator(new ClientCredentialsAuthenticator(clientId, clientSecret));
+
             _spotifyClient = new SpotifyClient(config);
         }
 

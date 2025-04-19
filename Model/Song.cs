@@ -3,6 +3,7 @@ using System.Windows;
 using System.Xml;
 using Google.Apis.YouTube.v3.Data;
 using SpotifyAPI.Web;
+using spotifyDragDrop.Services;
 using SearchResult = Google.Apis.YouTube.v3.Data.SearchResult;
 
 namespace spotifyDragDrop.Model
@@ -24,7 +25,7 @@ namespace spotifyDragDrop.Model
         }
 
         // Factory method
-        public static async Task<Song> CreateFromSpotifyUrlAsync(string url)
+        public static async Task<Song> CreateFromSpotifyUrlAsync(string url, YouTubeApiService youTubeClient, SpotifyApiService spotifyClient)
         {
             try
             {
@@ -32,11 +33,11 @@ namespace spotifyDragDrop.Model
                 string trackId = ExtractIdFromSpotifyUrl(url);
 
                 // 2. Use the SpotifyClient to get full track data
-                var track = await App.SpotifyClient.GetTrackAsync(trackId);
+                var track = await spotifyClient.GetTrackAsync(trackId);
 
                 if (track == null) throw new Exception("Track not found.");
 
-                var ytVideo = await SearchForYoutubeURL(track, static async () =>
+                var ytVideo = await SearchForYoutubeURL(track, youTubeClient, static async () =>
                 {
                     return await Application.Current.Dispatcher.InvokeAsync(() =>
                     {
@@ -79,12 +80,12 @@ namespace spotifyDragDrop.Model
             return segments.Last().Split('?')[0]; // Handles trailing query params
         }
 
-        private static async Task<SearchResult> SearchForYoutubeURL(FullTrack track, Func<Task<string>> promptForYoutubeUrl)
+        private static async Task<SearchResult> SearchForYoutubeURL(FullTrack track, YouTubeApiService youTubeClient, Func<Task<string>> promptForYoutubeUrl)
         {
             try
             {
                 var query = $"{track.Name} {track.Artists[0].Name} - Topic"; // Search for the track name
-                var matchingVideo = await App.YouTubeClient.FindVideoWithMatchingDurationAsync(query, TimeSpan.FromMilliseconds(track.DurationMs));
+                var matchingVideo = await youTubeClient.FindVideoWithMatchingDurationAsync(query, TimeSpan.FromMilliseconds(track.DurationMs));
 
 
                 if (matchingVideo != null) return matchingVideo;
@@ -104,7 +105,7 @@ namespace spotifyDragDrop.Model
                 }
 
                 // Fetch video details for the provided URL
-                var manualVideo = await App.YouTubeClient.SearchVideoByIdAsync(videoId);
+                var manualVideo = await youTubeClient.SearchVideoByIdAsync(videoId);
 
                 if (manualVideo == null)
                 {

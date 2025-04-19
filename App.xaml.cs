@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using System.IO;
 using System.Configuration;
 using spotifyDragDrop.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace spotifyDragDrop
 {
@@ -14,65 +15,45 @@ namespace spotifyDragDrop
     /// </summary>
     public partial class App : Application
     {
-        public static SpotifyApiService SpotifyClient { get; private set; } = null!;
-        public static YouTubeApiService YouTubeClient { get; private set; } = null!;
+        public static IServiceProvider ServiceProvider { get; private set; } = null!;
 
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
-
-            IConfiguration configuration;
-
-            if (!File.Exists("appsettings.json"))
-            {
-                MessageBox.Show("Configuration file 'appsettings.json' is missing. Please set it up before running the application.",
-                                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                Shutdown(); // Gracefully exit the application
-                return;
-            }
-
             try
             {
-               configuration = new ConfigurationBuilder()
-                    .AddJsonFile("appsettings.json")
+                // Load configuration
+                var configuration = new ConfigurationBuilder()
+                    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
                     .Build();
+
+                // Initialize services
+                var serviceCollection = new ServiceCollection();
+                ConfigureServices(serviceCollection, configuration);
+
+                ServiceProvider = serviceCollection.BuildServiceProvider();
+
+                // Show the main window
+                var mainWindow = ServiceProvider.GetRequiredService<MainWindow>();
+                mainWindow.Show();
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to load configuration: {ex.Message}",
-                                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                // Display error message and shut down the application
+                MessageBox.Show($"Application failed to start: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 Shutdown(); // Gracefully exit the application
-                return;
             }
+        }
 
-            try
-            {
-                // Initialize the YouTube client
-                YouTubeClient = new YouTubeApiService(configuration);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Failed to initialize YouTube API client: {ex.Message}",
-                                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                Shutdown(); // Gracefully exit the application
-                return;
-            }
+        private void ConfigureServices(IServiceCollection services, IConfiguration configuration)
+        {
+            // Register configuration
+            services.AddSingleton(configuration);
 
-            try
-            {
-                SpotifyClient = new SpotifyApiService(configuration);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Failed to initialize Spotify API client: {ex.Message}",
-                                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                Shutdown(); // Gracefully exit the application
-                return;
-            }
-
-            // Show the main window
-            MainWindow mainWindow = new MainWindow();
-            mainWindow.Show();
+            // Register services
+            services.AddSingleton<YouTubeApiService>();
+            services.AddSingleton<SpotifyApiService>();
+            services.AddTransient<MainWindow>();
         }
 
 
