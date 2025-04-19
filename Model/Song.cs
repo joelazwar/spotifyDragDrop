@@ -31,10 +31,10 @@ namespace spotifyDragDrop.Model
                 // 1. Extract the track ID from the URL (e.g. "1pYPgA8XdHFQS15HPB41MH")
                 string trackId = ExtractIdFromSpotifyUrl(url);
 
-
-
                 // 2. Use the SpotifyClient to get full track data
-                var track = await App.SpotifyClient.Tracks.Get(trackId);
+                var track = await App.SpotifyClient.GetTrackAsync(trackId);
+
+                if (track == null) throw new Exception("Track not found.");
 
                 var ytVideo = await SearchForYoutubeURL(track, static async () =>
                 {
@@ -66,7 +66,7 @@ namespace spotifyDragDrop.Model
             }
             catch (Exception ex)
             {
-                throw new Exception($"An unexpected error occurred while creating the song : {ex.Message}", ex);
+                throw new Exception($"An error occurred while creating the song : {ex.Message}", ex);
             }
         }
 
@@ -83,45 +83,11 @@ namespace spotifyDragDrop.Model
         {
             try
             {
-                // Step 2: Search for the track filtered by the channel ID
-                var videoSearchRequest = App.YouTubeService.Search.List("snippet");
-                videoSearchRequest.Q = $"{track.Name} {track.Artists[0].Name} - Topic"; // Search for the track name
-                videoSearchRequest.Type = "video";
-                videoSearchRequest.MaxResults = 5;
+                var query = $"{track.Name} {track.Artists[0].Name} - Topic"; // Search for the track name
+                var matchingVideo = await App.YouTubeClient.FindVideoWithMatchingDurationAsync(query, TimeSpan.FromMilliseconds(track.DurationMs));
 
-                var videoSearchResponse = await videoSearchRequest.ExecuteAsync();
 
-                // Get the first video result with matching duration (+- 2 seconds)
-                foreach (var video in videoSearchResponse.Items)
-                {
-                    var videoDetailsRequest = App.YouTubeService.Videos.List("contentDetails");
-                    videoDetailsRequest.Id = video.Id.VideoId;
-
-                    var videoDetailsResponse = await videoDetailsRequest.ExecuteAsync();
-                    var videoDetails = videoDetailsResponse.Items.FirstOrDefault();
-
-                    if (videoDetails != null)
-                    {
-                        var videoDuration = XmlConvert.ToTimeSpan(videoDetails.ContentDetails.Duration);
-                        var trackDuration = TimeSpan.FromMilliseconds(track.DurationMs);
-
-                        if (Math.Abs((videoDuration - trackDuration).TotalSeconds) <= 10)
-                        {
-                            return new SearchResult
-                            {
-                                Id = video.Id,
-                                Snippet = new SearchResultSnippet
-                                {
-                                    Title = video.Snippet.Title,
-                                    Description = video.Snippet.Description,
-                                    ChannelId = video.Snippet.ChannelId,
-                                    ChannelTitle = video.Snippet.ChannelTitle,
-                                    Thumbnails = video.Snippet.Thumbnails
-                                }
-                            };
-                        }
-                    }
-                }
+                if (matchingVideo != null) return matchingVideo;
 
                 // If no matching video is found, prompt the user for a YouTube URL
                 string youtubeUrl = await promptForYoutubeUrl();
@@ -138,11 +104,7 @@ namespace spotifyDragDrop.Model
                 }
 
                 // Fetch video details for the provided URL
-                var manualVideoDetailsRequest = App.YouTubeService.Videos.List("snippet,contentDetails");
-                manualVideoDetailsRequest.Id = videoId;
-
-                var manualVideoDetailsResponse = await manualVideoDetailsRequest.ExecuteAsync();
-                var manualVideo = manualVideoDetailsResponse.Items.FirstOrDefault();
+                var manualVideo = await App.YouTubeClient.SearchVideoByIdAsync(videoId);
 
                 if (manualVideo == null)
                 {

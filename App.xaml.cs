@@ -5,6 +5,7 @@ using SpotifyAPI.Web;
 using Microsoft.Extensions.Configuration;
 using System.IO;
 using System.Configuration;
+using spotifyDragDrop.Services;
 
 namespace spotifyDragDrop
 {
@@ -13,8 +14,8 @@ namespace spotifyDragDrop
     /// </summary>
     public partial class App : Application
     {
-        public static SpotifyClient SpotifyClient { get; private set; } = null!;
-        public static YouTubeService YouTubeService { get; private set; } = null!;
+        public static SpotifyApiService SpotifyClient { get; private set; } = null!;
+        public static YouTubeApiService YouTubeClient { get; private set; } = null!;
 
         protected override void OnStartup(StartupEventArgs e)
         {
@@ -44,34 +45,30 @@ namespace spotifyDragDrop
                 return;
             }
 
-            var ytApiKey = configuration["ApiKey"];
-            if (string.IsNullOrEmpty(ytApiKey))
+            try
             {
-                MessageBox.Show("YouTube API key is missing in appsettings.json",
+                // Initialize the YouTube client
+                YouTubeClient = new YouTubeApiService(configuration);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to initialize YouTube API client: {ex.Message}",
                                 "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 Shutdown(); // Gracefully exit the application
                 return;
             }
 
-            var spotifyClientId = configuration["ClientId"];
-            var spotifyClientSecret = configuration["ClientSecret"];
-            if (string.IsNullOrEmpty(spotifyClientId) || string.IsNullOrEmpty(spotifyClientSecret))
+            try
             {
-                MessageBox.Show("Spotify credentials are missing in appsettings.json",
+                SpotifyClient = new SpotifyApiService(configuration);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to initialize Spotify API client: {ex.Message}",
                                 "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 Shutdown(); // Gracefully exit the application
                 return;
             }
-
-            var spotifyConfig = SpotifyClientConfig.CreateDefault().WithAuthenticator(new ClientCredentialsAuthenticator(spotifyClientId, spotifyClientSecret));
-            SpotifyClient = new SpotifyClient(spotifyConfig);
-
-            // Initialize the YouTube client
-            YouTubeService = new YouTubeService(new BaseClientService.Initializer
-            {
-                ApiKey = ytApiKey,
-                ApplicationName = "SpotifyDragDrop"
-            });
 
             // Show the main window
             MainWindow mainWindow = new MainWindow();
