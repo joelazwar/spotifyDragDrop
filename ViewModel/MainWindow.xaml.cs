@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
+using System.Security.AccessControl;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -220,91 +221,33 @@ namespace spotifyDragDrop
             }
 
             // Paths for the MP3 file and album art
-            string mp3Path = System.IO.Path.Combine(outputDirectory, $"{song.Artist} - {song.Title}.mp3");
-            string albumArtPath = System.IO.Path.Combine(outputDirectory, $"{song.Title}_cover.jpg");
+            string mp3Path = Path.Combine(outputDirectory, $"{song.Artist} - {song.Title}.mp3");
+            string albumArtPath = Path.Combine(outputDirectory, $"{song.Title}_cover.jpg");
 
-            // Step 1: Use yt-dlp to download the MP3
-            var ytDlpProcessStartInfo = new ProcessStartInfo
-            {
-                FileName = "yt-dlp", // Ensure yt-dlp is in your PATH or provide the full path
-                Arguments = $"-x --audio-format mp3 -o \"{mp3Path}\" {song.YoutubeUrl}",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
+            var mediaHelper = new MediaProcessingHelper();
 
-            Debug.WriteLine($"Executing yt-dlp: {ytDlpProcessStartInfo.Arguments}");
+            if (song.YoutubeUrl == null) return;
 
-            using (var ytDlpProcess = new Process { StartInfo = ytDlpProcessStartInfo })
-            {
-                ytDlpProcess.Start();
-                string ytDlpOutput = await ytDlpProcess.StandardOutput.ReadToEndAsync();
-                string ytDlpError = await ytDlpProcess.StandardError.ReadToEndAsync();
-                await ytDlpProcess.WaitForExitAsync();
+            // Step 1: Download the MP3 using yt-dlp
+            await mediaHelper.DownloadMp3Async(song.YoutubeUrl, mp3Path);
 
-                Debug.WriteLine($"yt-dlp Output: {ytDlpOutput}");
-                Debug.WriteLine($"yt-dlp Error: {ytDlpError}");
-
-                if (ytDlpProcess.ExitCode != 0)
-                {
-                    throw new Exception($"yt-dlp failed: {ytDlpError}");
-                }
-            }
-
-            // Step 2: Download the Spotify album art
+            // Step 2: Download the album art
             if (!string.IsNullOrWhiteSpace(song.AlbumArt))
             {
-                using (var httpClient = new HttpClient())
-                {
-                    var imageBytes = await httpClient.GetByteArrayAsync(song.AlbumArt);
-                    await System.IO.File.WriteAllBytesAsync(albumArtPath, imageBytes);
-                }
+                await mediaHelper.DownloadAlbumArtAsync(song.AlbumArt, albumArtPath);
             }
 
             // Step 3: Set metadata using TagLib#
-            var file = TagLib.File.Create(mp3Path);
-            file.Tag.Title = song.Title;
-            file.Tag.Performers = new[] { song.Artist };
-            file.Tag.Album = song.Album;
-
-            if (System.IO.File.Exists(albumArtPath))
-            {
-                // Read the album art file into a byte array
-                var albumArtBytes = System.IO.File.ReadAllBytes(albumArtPath);
-
-                // Create a TagLib.Picture object for the front cover
-                var frontCover = new TagLib.Picture
-                {
-                    Data = new TagLib.ByteVector(albumArtBytes),
-                    Type = TagLib.PictureType.FrontCover,
-                    Description = "Album cover",
-                    MimeType = "image/jpeg" // Ensure the MIME type matches the file format
-                };
-
-                // Assign both pictures to the MP3 file's tag
-                file.Tag.Pictures = new[] { frontCover };
-
-                Debug.WriteLine("Album art successfully added to the MP3 file.");
-            }
-
-            //Force ID3v2.3 Tag Version
-            if (file.TagTypes.HasFlag(TagLib.TagTypes.Id3v2))
-            {
-                var id3v2Tag = (TagLib.Id3v2.Tag)file.GetTag(TagLib.TagTypes.Id3v2);
-                id3v2Tag.Version = 3; // Force ID3v2.3
-            }
-
-
-            file.Save();
+            mediaHelper.SetMp3Metadata(mp3Path, song, albumArtPath);
 
             // Step 4: Clean up temporary album art file
-            if (System.IO.File.Exists(albumArtPath))
+            if (File.Exists(albumArtPath))
             {
-                System.IO.File.Delete(albumArtPath);
+                File.Delete(albumArtPath);
             }
 
             Debug.WriteLine($"Successfully created MP3 with metadata: {mp3Path}");
         }
+
     }
 }
