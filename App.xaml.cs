@@ -45,7 +45,7 @@ namespace spotifyDragDrop
             }
         }
 
-        private void ConfigureServices(IServiceCollection services, IConfiguration configuration)
+        private static void ConfigureServices(IServiceCollection services, IConfiguration configuration)
         {
             // Register configuration
             services.AddSingleton(configuration);
@@ -53,6 +53,7 @@ namespace spotifyDragDrop
             // Register services
             services.AddSingleton<YouTubeApiService>();
             services.AddSingleton<SpotifyApiService>();
+            services.AddSingleton<SoundCloudApiService>();
             services.AddTransient<MainWindow>();
         }
 

@@ -104,5 +104,30 @@ namespace spotifyDragDrop.Services
             file.Save();
             Debug.WriteLine($"Metadata successfully set for: {mp3Path}");
         }
+
+        public static string DetermineSourceFromUrl(string url)
+        {
+            try
+            {
+                var uri = new Uri(url);
+
+                if (uri.Host.Contains("spotify.com"))
+                {
+                    return "Spotify";
+                }
+                else if (uri.Host.Contains("soundcloud.com"))
+                {
+                    return "SoundCloud";
+                }
+                else
+                {
+                    return "Unknown";
+                }
+            }
+            catch (UriFormatException)
+            {
+                return "Invalid";
+            }
+        }
     }
 }

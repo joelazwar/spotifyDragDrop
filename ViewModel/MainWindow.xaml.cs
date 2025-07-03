@@ -22,6 +22,7 @@ namespace spotifyDragDrop
     {
         private readonly YouTubeApiService _youTubeService;
         private readonly SpotifyApiService _spotifyService;
+        private readonly SoundCloudApiService _soundCloudService;
         public ObservableCollection<Song> Songs { get; }
         public ICommand DeleteSongCommand { get; }
         public ICommand DownloadSongsCommand { get; }
@@ -62,10 +63,11 @@ namespace spotifyDragDrop
             }
         }
 
-        public MainWindow(YouTubeApiService youTubeService, SpotifyApiService spotifyService)
+        public MainWindow(YouTubeApiService youTubeService, SpotifyApiService spotifyService, SoundCloudApiService soundCloudService)
         {
             _youTubeService = youTubeService;
             _spotifyService = spotifyService;
+            _soundCloudService = soundCloudService; 
 
             InitializeComponent();
             DataContext = this;
@@ -89,6 +91,8 @@ namespace spotifyDragDrop
 
             Message = "Scanning URL...";
 
+            var source = MediaProcessingHelper.DetermineSourceFromUrl(url);
+
             if (string.IsNullOrWhiteSpace(url))
             {
                 Message = "Invalid URL. Please try again.";
@@ -97,8 +101,21 @@ namespace spotifyDragDrop
 
             try
             {
-                var song = await Song.CreateFromSpotifyUrlAsync(url, _youTubeService, _spotifyService);
-                Songs.Add(song);
+                switch (source)
+                {
+                    case "Spotify":
+                        var spotifySong = await Song.CreateFromSpotifyUrlAsync(url, _youTubeService, _spotifyService);
+                        Songs.Add(spotifySong);
+                        break;
+
+                    case "SoundCloud":
+                        var soundCloudSong = await Song.CreateFromSoundCloudUrlAsync(url,_soundCloudService);
+                        Songs.Add(soundCloudSong);
+                        break;
+
+                    default:
+                        throw new Exception("Unsupported URL format. Please provide a valid Spotify or SoundCloud URL.");
+                }
                 Message = "Song added successfully!";
             }
             catch (Exception ex)

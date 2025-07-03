@@ -1,6 +1,6 @@
-﻿using System.DirectoryServices;
+﻿
+using System.Net.Http;
 using System.Windows;
-using System.Xml;
 using Google.Apis.YouTube.v3.Data;
 using SpotifyAPI.Web;
 using spotifyDragDrop.Services;
@@ -8,7 +8,6 @@ using SearchResult = Google.Apis.YouTube.v3.Data.SearchResult;
 
 namespace spotifyDragDrop.Model
 {
-
 
     public class Song
     {
@@ -132,6 +131,28 @@ namespace spotifyDragDrop.Model
             catch (Exception ex)
             {
                 throw new Exception($"An error occurred: {ex.Message}", ex);
+            }
+        }
+
+        public static async Task<Song> CreateFromSoundCloudUrlAsync(string url, SoundCloudApiService soundCloudClient)
+        {
+            try
+            {
+                var track = await soundCloudClient.ResolveUrlAsync(url);
+
+                return new Song
+                {
+                    Title = track.title,
+                    Artist = track.user?.username,
+                    Album = track.title,
+                    Thumbnail = track.artwork_url?.Replace("-large", "-t500x500"),
+                    YoutubeUrl = url,
+                    AlbumArt = track.artwork_url?.Replace("-large", "-t500x500")
+                };
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"An error occurred while creating the song: {ex.Message}", ex);
             }
         }
 
