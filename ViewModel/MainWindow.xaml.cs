@@ -241,6 +241,9 @@ namespace spotifyDragDrop
             string mp3Path = Path.Combine(outputDirectory, $"{song.Artist} - {song.Title}.mp3");
             string albumArtPath = Path.Combine(outputDirectory, $"{song.Title}_cover.jpg");
 
+            mp3Path = mp3Path.Replace("/", "_"); // Replace any slashes in the title to avoid path issues
+            albumArtPath = albumArtPath.Replace("/", "_"); // Replace any slashes in the title to avoid path issues
+
             var mediaHelper = new MediaProcessingHelper();
 
             if (song.YoutubeUrl == null) return;
