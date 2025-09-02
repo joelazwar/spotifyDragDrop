@@ -26,6 +26,7 @@ namespace spotifyDragDrop
         public ObservableCollection<Song> Songs { get; }
         public ICommand DeleteSongCommand { get; }
         public ICommand DownloadSongsCommand { get; }
+        public ICommand EditYoutubeUrlCommand { get; }
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -78,6 +79,7 @@ namespace spotifyDragDrop
 
             DeleteSongCommand = new RelayCommand<Song>(DeleteSong);
             DownloadSongsCommand = new RelayCommand<object>(_ => DownloadSongs(), _ => CanDownloadSongs());
+            EditYoutubeUrlCommand = new RelayCommand<Song>(EditYoutubeUrl);
 
         }
 
@@ -165,6 +167,24 @@ namespace spotifyDragDrop
             {
                 Songs.Remove(song);
             }
+        }
+
+        private void EditYoutubeUrl(Song song)
+        {
+            if (song == null) return;
+
+            // Show a dialog to get the new URL
+            var dialog = new InputDialog("Change URL", song.YoutubeUrl);
+            if (dialog.ShowDialog() == true)
+            {
+                try
+                {
+                    song.changeYoutubeUrl(dialog.InputText, _youTubeService);
+                    // Notify property changed if needed
+                }
+                catch (Exception ex) { Message = ex.Message; }
+            }
+            return;
         }
 
         private void BrowseFolder_Click(object sender, RoutedEventArgs e)

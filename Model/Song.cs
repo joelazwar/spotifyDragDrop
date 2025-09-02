@@ -1,4 +1,5 @@
 ﻿
+using System.ComponentModel;
 using System.Net.Http;
 using System.Windows;
 using Google.Apis.YouTube.v3.Data;
@@ -9,15 +10,44 @@ using SearchResult = Google.Apis.YouTube.v3.Data.SearchResult;
 namespace spotifyDragDrop.Model
 {
 
-    public class Song
+    public class Song : INotifyPropertyChanged
     {
         public string? Title { get; private set; }
         public string? Artist { get; private set; }
         public string? Album { get; private set; }
-        public string? Thumbnail { get; private set; }
-        public string? YoutubeUrl { get; private set; }
+        private string? _thumbnail;
+        public string? Thumbnail
+        {
+            get => _thumbnail;
+            set
+            {
+                if (_thumbnail != value)
+                {
+                    _thumbnail = value;
+                    OnPropertyChanged(nameof(Thumbnail));
+                }
+            }
+        }
+        private string? _youtubeUrl;
+        public string? YoutubeUrl
+        {
+            get => _youtubeUrl;
+            set
+            {
+                if (_youtubeUrl != value)
+                {
+                    _youtubeUrl = value;
+                    OnPropertyChanged(nameof(YoutubeUrl));
+                }
+            }
+        }
         public string? AlbumArt { get; private set; }
 
+        public event PropertyChangedEventHandler? PropertyChanged;
+        private void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
         private Song()
         {
 
@@ -40,7 +70,7 @@ namespace spotifyDragDrop.Model
                 {
                     return await Application.Current.Dispatcher.InvokeAsync(() =>
                     {
-                        var inputDialog = new InputDialog("No matching video found. Please enter a YouTube URL:");
+                        var inputDialog = new InputDialog("No matching video found. Please enter a YouTube URL:" , "");
                         if (inputDialog.ShowDialog() == true)
                         {
                             return inputDialog.ResponseText ?? string.Empty; // Ensure a non-null value is returned
@@ -162,6 +192,28 @@ namespace spotifyDragDrop.Model
             var uri = new Uri(url);
             var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
             return query["v"]; // Return type is now nullable to match the potential null value.  
+        }
+
+        public async void changeYoutubeUrl(string url, YouTubeApiService youTubeClient)
+        {
+
+            var videoId = ExtractVideoIdFromUrl(url);
+            if (string.IsNullOrWhiteSpace(videoId))
+            {
+                throw new Exception("Invalid YouTube URL provided.");
+            }
+
+            // Fetch video details for the provided URL
+            var manualVideo = await youTubeClient.SearchVideoByIdAsync(videoId);
+
+            if (manualVideo == null)
+            {
+                throw new Exception("The provided YouTube URL is invalid or the video does not exist.");
+            }
+
+            YoutubeUrl = url;
+            Thumbnail = manualVideo.Snippet.Thumbnails.Default__.Url;
+
         }
 
 

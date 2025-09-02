@@ -19,11 +19,21 @@ namespace spotifyDragDrop
     /// </summary>
     public partial class InputDialog : Window
     {
-        public string? ResponseText { get; private set; }
+        public string? ResponseText { get;  set; }
+        public string? MessageText { get;  set; }
+        public string? InputText { get;  set; }
 
-        public InputDialog(string message)
+        public InputDialog(string message, string inputText)
         {
             InitializeComponent();
+            DataContext = this;
+            MessageText = message;
+            InputText = inputText;
+        }
+
+        private void InputDialog_Loaded(object sender, RoutedEventArgs e)
+        {
+            InputTextBox.SelectAll();
             InputTextBox.Focus();
         }
 
@@ -31,6 +41,7 @@ namespace spotifyDragDrop
         {
             ResponseText = InputTextBox.Text;
             DialogResult = true;
+            Close();
         }
 
         private void CancelButton_Click(object sender, RoutedEventArgs e)

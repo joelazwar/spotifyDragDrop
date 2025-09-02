@@ -53,6 +53,12 @@
                                     <TextBlock Text="{Binding Title}" FontWeight="Bold"/>
                                     <TextBlock Text="{Binding Artist}" FontStyle="Italic"/>
                                 </StackPanel>
+                                
+                                <Button Width="30" Height="30" Margin="10,0,0,0"
+    Command="{Binding DataContext.EditYoutubeUrlCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+    CommandParameter="{Binding}" Background="Transparent" BorderBrush="Transparent" Cursor="Hand">
+    <TextBlock Text="✎" FontSize="16" FontWeight="Bold" Foreground="Blue" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+</Button>
                                 <Button Width="30" Height="30" Margin="10,0,0,0"
         Command="{Binding DataContext.DeleteSongCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
         CommandParameter="{Binding}" Background="Transparent" BorderBrush="Transparent" Cursor="Hand">
